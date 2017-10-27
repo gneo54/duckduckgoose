@@ -1,0 +1,25 @@
+{
+  "intents": [
+    {
+      "name": "AMAZON.CancelIntent",
+      "samples": []
+    },
+    {
+      "name": "AMAZON.HelpIntent",
+      "samples": []
+    },
+    {
+      "name": "AMAZON.StopIntent",
+      "samples": []
+    },
+    {
+      "name": "StartGameIntent",
+      "samples": [
+        "Start Duck Goose",
+        "Start Duck Duck Goose",
+        "Duck Duck Goose"
+      ],
+      "slots": []
+    }
+  ]
+}
