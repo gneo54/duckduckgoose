@@ -1,61 +1,162 @@
-/* eslint-disable  func-names */
-/* eslint quote-props: ["error", "consistent"]*/
-/**
- * This sample demonstrates a simple skill built with the Amazon Alexa Skills
- * nodejs skill development kit.
- * This sample supports multiple lauguages. (en-US, en-GB, de-DE).
- * The Intent Schema, Custom Slots and Sample Utterances for this skill, as well
- * as testing instructions are located at https://github.com/alexa/skill-sample-nodejs-fact
- **/
+// This sample demonstrates handling intents from an Alexa skill using the Alexa Skills Kit SDK (v2).
+// Please visit https://alexa.design/cookbook for additional examples on implementing slots, dialog management,
+// session persistence, api calls, and more.
+const Alexa = require('ask-sdk-core');
 
-'use strict';
+const skillName = 'Duck Duck Goose';
+function getAllEntitledProducts(inSkillProductList) {
+  const entitledProductList = inSkillProductList.filter(record => record.entitled === 'ENTITLED');
+  return entitledProductList;
+}
 
-const Alexa = require('alexa-sdk');
 
-const APP_ID = '';  // TODO replace with your app ID (OPTIONAL).
-
-const languageStrings = {
-    'en': {
-        translation: {
+const LaunchRequestISPHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'Connections.Response';
+    },
+    
+    
+    handle(handlerInput) {
+        
+        if (handlerInput.requestEnvelope.request.payload.purchaseResult === 'ALREADY_PURCHASED'){
+            const speakOutputProduct = ' Get ready! Say, Play, to begin!';
+              return handlerInput.responseBuilder
+                .speak(speakOutputProduct)
+                .reprompt(speakOutputProduct)
+                .getResponse();
+        }
+        else if (handlerInput.requestEnvelope.request.payload.purchaseResult === 'ACCEPTED'){
+            const speakOutputProduct = ' Get ready! Say, Play, to begin!';
+              return handlerInput.responseBuilder
+                .speak(speakOutputProduct)
+                .reprompt(speakOutputProduct)
+                .getResponse();
             
-            SKILL_NAME: 'Duck Duck Goose',
-            //GET_FACT_MESSAGE: "Here's your fact: ",
-            GET_STARTGAME_MESSAGE: "Okay. Let's start!",
-            HELP_MESSAGE: 'You can say play duck duck goose, or, you can say stop... What can I help you with?',
-            HELP_REPROMPT: 'What can I help you with?',
-            STOP_MESSAGE: 'Goodbye!',
-        },
-    },
-    'en-US': {
-        translation: {
-           
-            SKILL_NAME: 'Duck Duck Goose',
-        },
-    },
-    'en-GB': {
-        translation: {
- 
-            SKILL_NAME: 'British Duck Duck Goose',
-        },
+        }
+        else if (handlerInput.requestEnvelope.request.payload.purchaseResult === 'DECLINED'){
+            const speakOutputProduct = ' You can still play a short game. Get ready! Say, Play, to begin!';
+              return handlerInput.responseBuilder
+                .speak(speakOutputProduct)
+                .reprompt(speakOutputProduct)
+                .getResponse();
+            
+        }
+         else if (handlerInput.requestEnvelope.request.payload.purchaseResult === 'PENDING_PURCHASE'){
+            const speakOutputProduct = ' You can still play a short game. Get ready! Say, Play, to begin!';
+              return handlerInput.responseBuilder
+                .speak(speakOutputProduct)
+                .reprompt(speakOutputProduct)
+                .getResponse();
+            
+        }
+        
+
+    }
+}
+const LaunchRequestHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
+    }, 
+    async handle(handlerInput) {
+        
+        console.log(`~~~~ in LaunchRequest`);
+    const locale = handlerInput.requestEnvelope.request.locale;
+    const ms = handlerInput.serviceClientFactory.getMonetizationServiceClient();
+    
+    //const monetizationService = handlerInput.serviceClientFactory.getMonetizationServiceClient();
+    const voicePurchaseSetting = await ms.getVoicePurchaseSetting();
+    try {
+        const purchasedResults = await ms.getInSkillProducts(locale);
+    
+    
+        const entitledProducts = getAllEntitledProducts(purchasedResults.inSkillProducts);
+                console.log(`~~~~ after factory`);
+                if (entitledProducts && entitledProducts.length > 0) {
+                  // Customer owns one or more products
+        console.log(`~~~~ launch re - 1 or more`);            
+                  const speakOutputProduct = `Welcome to ${skillName}. You currently own the longer game. ` +
+                      ' Get ready! Say, Play, to begin!';
+                  return handlerInput.responseBuilder
+                    .speak(speakOutputProduct)
+                    .reprompt(speakOutputProduct)
+                    .getResponse();
+                }
+        console.log(`~~~~ launch re - o products`);            
+                // Not entitled to anything yet.
+                console.log('No entitledProducts');
+                var speakOutputNoProduct = `Welcome to ${skillName}. Get ready! Say, Play, to begin a short game!`;
+                if (voicePurchaseSetting)
+                    speakOutputNoProduct += ' To hear about the longer game that you can purchase, say, What can I buy?';
+                return handlerInput.responseBuilder
+                  .speak(speakOutputNoProduct)
+                  .reprompt(speakOutputNoProduct)
+                  .getResponse();
+    }
+    catch (err){
+           console.log(`Error calling InSkillProducts API: ${err}`);
+        
+                return handlerInput.responseBuilder
+                  .speak('Something went wrong in loading your purchase history')
+                  .getResponse();
+    }
+    
+        
     
     }
+    
+      /*  const speakOutput = 'Welcome to Eeny, meeny, miny, moe. Get ready by pointing. Say Start to begin! ';
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+            */
 };
-
-const handlers = {
-    'LaunchRequest': function () {
-        this.emit('StartGame');
+const startIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'startIntent' ;
     },
-    'StartGameIntent': function () {
-        this.emit('StartGame');
-    },
-    'StartGame': function () {
+    async handle(handlerInput) {
+        console.log(`~~~~ start or play again`);            
+        const locale = handlerInput.requestEnvelope.request.locale;
+    
+    const ms = handlerInput.serviceClientFactory.getMonetizationServiceClient();
 
-        const randomNumberBetweenFiveAndTwenty = Math.random() * (21 - 5) + 5;
+    const voicePurchaseSetting = await ms.getVoicePurchaseSetting();
+    try {
+        const purchasedResults = await ms.getInSkillProducts(locale);
+        
+        
+        const entitledProducts = getAllEntitledProducts(purchasedResults.inSkillProducts);
+        
+       
+
+        // Create speech output
+        //const speechOutput = this.t('GET_STARTGAME_MESSAGE') + wordsToSay;
+        var hasLongerGame = false;
+        if (entitledProducts && entitledProducts.length > 0) {
+          // Customer owns one or more products
+          hasLongerGame = true;
+            //const speakOutputProduct = 'Eeny, meeny, miny, moe. Catch, a, tiger, by, the, toe. If, he, hollers, let, him, go. Eeny, meeny, miny, moe! If you want to play again, say, play again. To stop, say, stop.';
+          
+          /*
+          return handlerInput.responseBuilder
+            .speak(speakOutputProduct)
+            .reprompt(speakOutputProduct)
+            .getResponse();
+            */
+        }
+        var floorNumber = 5;
+        var ceilingNumber = 21;
+
+        if (hasLongerGame){
+            floorNumber = 15;
+            ceilingNumber = 51;
+        }
+
+        const randomNumberBetweenFiveAndTwenty = Math.random() * (ceilingNumber - floorNumber) + floorNumber;
         // Get a random space fact from the space facts list
-        // Use this.t() to get corresponding language data
-        //const factArr = this.t('FACTS');
-        //const factIndex = Math.floor(Math.random() * factArr.length);
-        //const randomFact = factArr[factIndex];
+     
         var wordsToSay = '';
 
         for (var i = 0; i < randomNumberBetweenFiveAndTwenty; i++) {
@@ -64,29 +165,282 @@ const handlers = {
         }
         wordsToSay += 'Goose!';
 
-        const cardDetails = 'Duck ' + randomNumberBetweenFiveAndTwenty + ' time(s), then Goose!';
-        // Create speech output
-        const speechOutput = this.t('GET_STARTGAME_MESSAGE') + wordsToSay;
-        this.emit(':tellWithCard', speechOutput, this.t('SKILL_NAME'), cardDetails);
-    },
-    'AMAZON.HelpIntent': function () {
-        const speechOutput = this.t('HELP_MESSAGE');
-        const reprompt = this.t('HELP_MESSAGE');
-        this.emit(':ask', speechOutput, reprompt);
-    },
-    'AMAZON.CancelIntent': function () {
-        this.emit(':tell', this.t('STOP_MESSAGE'));
-    },
-    'AMAZON.StopIntent': function () {
-        this.emit(':tell', this.t('STOP_MESSAGE'));
-    },
+        // Not entitled to anything yet.
+        console.log('Regular Game');
+        
+        var speakOutputNoProduct = wordsToSay +' If you want to play again, get ready and say, play again.';
+
+        if (voicePurchaseSetting && !hasLongerGame)
+            speakOutputNoProduct += ' If you want to play longer, get ready to point and say, play longer.';
+            
+        speakOutputNoProduct+=' To stop, say, stop.';
+            
+        
+        //const speakOutputNoProduct = `Welcome to ${skillName}. Say Start to begin a short game! To hear about the longer game that you can purchase, ' +
+        //'say What can I buy.`;
+        return handlerInput.responseBuilder
+          .speak(speakOutputNoProduct)
+          .reprompt(speakOutputNoProduct)
+          .getResponse();
+    }
+    catch(err)
+    {
+        console.log(`Error calling InSkillProducts API: ${err}`);
+
+        return handlerInput.responseBuilder
+          .speak('Something went wrong in loading your purchase history')
+          .getResponse();
+    }
+    
+      
+      
+ 
+    
+    
+       
+    }
 };
 
-exports.handler = function (event, context) {
-    const alexa = Alexa.handler(event, context);
-    alexa.APP_ID = APP_ID;
-    // To enable string internationalization (i18n) features, set a resources object.
-    alexa.resources = languageStrings;
-    alexa.registerHandlers(handlers);
-    alexa.execute();
+const WhatCanIBuyIntentHandler = {
+    
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'WhatCanIBuyIntent');
+    },
+   async handle(handlerInput) {
+        console.log('~~~~ WhatCanIBuyIntentHandler');
+
+        const locale = handlerInput.requestEnvelope.request.locale;
+        const ms = handlerInput.serviceClientFactory.getMonetizationServiceClient();
+        
+
+        const voicePurchaseSetting = await ms.getVoicePurchaseSetting();
+        return ms.getInSkillProducts(locale).then(
+            function reportPurchasedProducts(result) {
+
+                
+                if (!voicePurchaseSetting) {
+                    const cannotBuy = 'Sorry, In-Skill Purchasing is disabled. If you want to play, get ready and say, play. To stop, say, stop.';
+
+                    return handlerInput.responseBuilder
+                        .speak(cannotBuy)
+                        .reprompt(cannotBuy)
+                        .getResponse();
+                }
+
+                const entitledProducts = getAllEntitledProducts(result.inSkillProducts);
+                if (entitledProducts && entitledProducts.length > 0) {
+                    // Customer owns one or more products
+
+                    const speakOutputProduct = 'You already own the longer game. If you want to play, get ready and say, play. To stop, say, stop.';
+
+                    return handlerInput.responseBuilder
+                        .speak(speakOutputProduct)
+                        .reprompt(speakOutputProduct)
+                        .getResponse();
+                }
+
+                // Not entitled to anything yet.
+                console.log('pitch');
+                const speakOutputNoProduct = 'You can purchase and play the Longer Game by saying, Buy Longer Game.';
+                //const speakOutputNoProduct = `Welcome to ${skillName}. Say Start to begin a short game! To hear about the longer game that you can purchase, ' +
+                //'say What can I buy.`;
+                return handlerInput.responseBuilder
+                    .speak(speakOutputNoProduct)
+                    .reprompt(speakOutputNoProduct)
+                    .getResponse();
+            },
+            function reportPurchasedProductsError(err) {
+                console.log(`Error calling InSkillProducts API: ${err}`);
+
+                return handlerInput.responseBuilder
+                    .speak('Something went wrong in loading your purchase history')
+                    .getResponse();
+            },
+        );
+
+    }
 };
+
+  
+const BuyLongerGameIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'BuyIntent');
+    },
+    handle(handlerInput) {
+        
+        const locale = handlerInput.requestEnvelope.request.locale;
+        const ms = handlerInput.serviceClientFactory.getMonetizationServiceClient();
+        console.log(`~~~~ after factory`);
+        return ms.getInSkillProductsTransactions(locale).then(
+          function reportCurrentProductStatus(result) {
+              
+              var startPurchase = false;
+              
+              if (result.length > 0){
+                  if (result[0].Status === 'PENDING_APPROVAL_BY_PARENT' ){
+                      const speakOutput = 'Until it is approved, you can play now by saying, Play';
+    
+                        return handlerInput.responseBuilder
+                            .speak(speakOutput)
+                            .reprompt(speakOutput)
+                            .getResponse();
+                  }
+                  else{
+                    startPurchase = true;        
+                  }
+              }
+              else{
+                  startPurchase = true;
+              }
+              
+              if (startPurchase){
+                return handlerInput.responseBuilder
+                    .addDirective({
+                        type: "Connections.SendRequest",
+                        name: "Buy",
+                        payload: {
+                            InSkillProduct: {
+                                productId: "amzn1.adg.product.77c38941-8a05-4055-b9fb-a5fd3e20781e",
+                            }
+                        },
+                        token: "correlationToken"
+                    })
+                    .getResponse();
+              }
+        }
+    );
+        //const speakOutput = 'You can purchase the Longer Game by saying, Buy Longer Game.';
+
+        
+    }
+};
+const CancelLongerGameIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'RefundProductIntent');
+    },
+    handle(handlerInput) {
+        //const speakOutput = 'You can purchase the Longer Game by saying, Buy Longer Game.';
+        return handlerInput.responseBuilder
+        .addDirective({
+            type: "Connections.SendRequest",
+            name: "Cancel",
+            payload: {
+                InSkillProduct: {
+                    productId: "amzn1.adg.product.77c38941-8a05-4055-b9fb-a5fd3e20781e",
+                }
+            },
+            token: "correlationToken"
+        })
+        .getResponse();
+        
+    }
+};
+
+
+const HelpIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.HelpIntent';
+    },
+    async handle(handlerInput) {
+        
+        const ms = handlerInput.serviceClientFactory.getMonetizationServiceClient();
+        const voicePurchaseSetting = await ms.getVoicePurchaseSetting();
+        
+        
+        var speakOutput = 'You can say, play, to play the game.';
+        if (voicePurchaseSetting){
+            speakOutput += ' or what can I buy.';
+        }
+        speakOutput += ' What would you like to do? ';
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+const CancelAndStopIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent'
+                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StopIntent');
+    },
+    handle(handlerInput) {
+        const speakOutput = 'Goodbye, thanks for playing!';
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .getResponse();
+    }
+};
+const SessionEndedRequestHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'SessionEndedRequest';
+    },
+    handle(handlerInput) {
+        // Any cleanup logic goes here.
+        return handlerInput.responseBuilder.getResponse();
+    }
+};
+
+// The intent reflector is used for interaction model testing and debugging.
+// It will simply repeat the intent the user said. You can create custom handlers
+// for your intents by defining them above, then also adding them to the request
+// handler chain below.
+const IntentReflectorHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest';
+    },
+    handle(handlerInput) {
+        const intentName = Alexa.getIntentName(handlerInput.requestEnvelope);
+        const speakOutput = `You just triggered ${intentName}`;
+
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            //.reprompt('add a reprompt if you want to keep the session open for the user to respond')
+            .getResponse();
+    }
+};
+
+// Generic error handling to capture any syntax or routing errors. If you receive an error
+// stating the request handler chain is not found, you have not implemented a handler for
+// the intent being invoked or included it in the skill builder below.
+const ErrorHandler = {
+    canHandle() {
+        return true;
+    },
+    handle(handlerInput, error) {
+        console.log(`~~~~ err`);          
+        console.log(`~~~~ Error handled: ${error.stack}`);
+        const speakOutput = `Sorry, I had trouble doing what you asked. Please try again.`;
+
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+
+// The SkillBuilder acts as the entry point for your skill, routing all request and response
+// payloads to the handlers above. Make sure any new handlers or interceptors you've
+// defined are included below. The order matters - they're processed top to bottom.
+exports.handler = Alexa.SkillBuilders.custom()
+    .addRequestHandlers(
+        LaunchRequestHandler,
+        startIntentHandler,
+        WhatCanIBuyIntentHandler,
+        BuyLongerGameIntentHandler,
+        LaunchRequestISPHandler,
+        HelpIntentHandler,
+        CancelLongerGameIntentHandler,
+        CancelAndStopIntentHandler,
+        SessionEndedRequestHandler,
+        IntentReflectorHandler, // make sure IntentReflectorHandler is last so it doesn't override your custom intent handlers
+    )
+    .withApiClient(new Alexa.DefaultApiClient())
+    .addErrorHandlers(
+        ErrorHandler,
+    )
+    .lambda();
