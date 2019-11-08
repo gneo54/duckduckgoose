@@ -74,7 +74,7 @@ const LaunchRequestHandler = {
                 if (entitledProducts && entitledProducts.length > 0) {
                   // Customer owns one or more products
         console.log(`~~~~ launch re - 1 or more`);            
-                  const speakOutputProduct = `Welcome to ${skillName}. You currently own the longer game. ` +
+                  const speakOutputProduct = `Welcome to ${skillName}. You currently own the longer game with more than 10 Ducks. ` +
                       ' Get ready! Say, Play, to begin!';
                   return handlerInput.responseBuilder
                     .speak(speakOutputProduct)
@@ -84,9 +84,9 @@ const LaunchRequestHandler = {
         console.log(`~~~~ launch re - o products`);            
                 // Not entitled to anything yet.
                 console.log('No entitledProducts');
-                var speakOutputNoProduct = `Welcome to ${skillName}. Get ready! Say, Play, to begin a short game!`;
+                var speakOutputNoProduct = `Welcome to ${skillName}. A short game with 5 to 10 Ducks. Get ready to point! Say, Play, to begin. `;
                 if (voicePurchaseSetting)
-                    speakOutputNoProduct += ' To hear about the longer game that you can purchase, say, What can I buy?';
+                    speakOutputNoProduct += ' To hear about the longer game that you can purchase, with more than 10 Ducks, say, What can I buy?';
                 return handlerInput.responseBuilder
                   .speak(speakOutputNoProduct)
                   .reprompt(speakOutputNoProduct)
@@ -146,11 +146,15 @@ const startIntentHandler = {
             .getResponse();
             */
         }
+        // 5 and 20 (5 and 21)
+        // 5 and 10 (5 and 11)
         var floorNumber = 5;
-        var ceilingNumber = 21;
+        var ceilingNumber = 11;
 
+        // 15 and 50 (15 and 51)
+        // 10 and 50 (10 and 51)
         if (hasLongerGame){
-            floorNumber = 15;
+            floorNumber = 10;
             ceilingNumber = 51;
         }
 
@@ -171,7 +175,7 @@ const startIntentHandler = {
         var speakOutputNoProduct = wordsToSay +' If you want to play again, get ready and say, play again.';
 
         if (voicePurchaseSetting && !hasLongerGame)
-            speakOutputNoProduct += ' If you want to play longer, get ready to point and say, play longer.';
+            speakOutputNoProduct += ' If you want to play longer, with more than 10 Ducks, say, play longer.';
             
         speakOutputNoProduct+=' To stop, say, stop.';
             
@@ -242,7 +246,7 @@ const WhatCanIBuyIntentHandler = {
 
                 // Not entitled to anything yet.
                 console.log('pitch');
-                const speakOutputNoProduct = 'You can purchase and play the Longer Game by saying, Buy Longer Game.';
+                const speakOutputNoProduct = 'You can purchase and play the Longer Game which includes more than 10 Ducks by saying, Buy Longer Game.';
                 //const speakOutputNoProduct = `Welcome to ${skillName}. Say Start to begin a short game! To hear about the longer game that you can purchase, ' +
                 //'say What can I buy.`;
                 return handlerInput.responseBuilder
@@ -353,7 +357,7 @@ const HelpIntentHandler = {
         
         var speakOutput = 'You can say, play, to play the game.';
         if (voicePurchaseSetting){
-            speakOutput += ' or what can I buy.';
+            speakOutput += ' or you can say, what can I buy.';
         }
         speakOutput += ' What would you like to do? ';
         return handlerInput.responseBuilder
